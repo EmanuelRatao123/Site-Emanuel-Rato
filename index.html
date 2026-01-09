@@ -7,61 +7,86 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="particles"></div>
+    
     <div class="container">
         <div class="auth-container" id="loginForm">
-            <h2>Login</h2>
+            <div class="logo">🎮</div>
+            <h2>Bem-vindo de Volta!</h2>
+            <p class="subtitle">Faça login para continuar</p>
             <form id="loginFormElement">
-                <input type="text" id="loginUsername" placeholder="Usuário ou Email" required>
-                <input type="password" id="loginPassword" placeholder="Senha" required>
-                <button type="submit">Entrar</button>
+                <div class="input-group">
+                    <input type="text" id="loginUsername" placeholder="Usuário ou Email" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="loginPassword" placeholder="Senha" required>
+                </div>
+                <button type="submit" class="btn-primary">Entrar</button>
             </form>
-            <p>Não tem uma conta? <a href="#" id="showRegisterLink">Cadastre-se!</a></p>
+            <p class="switch-form">Não tem uma conta? <a href="#" id="showRegisterLink">Cadastre-se!</a></p>
         </div>
 
         <div class="auth-container hidden" id="registerForm">
-            <h2>Cadastro</h2>
+            <div class="logo">✨</div>
+            <h2>Criar Conta</h2>
+            <p class="subtitle">Junte-se à comunidade</p>
             <form id="registerFormElement">
-                <input type="text" id="registerUsername" placeholder="Nome de usuário" required>
-                <input type="email" id="registerEmail" placeholder="Email" required>
-                <input type="password" id="registerPassword" placeholder="Senha (mín. 6 caracteres)" required>
-                <button type="submit">Cadastrar</button>
+                <div class="input-group">
+                    <input type="text" id="registerUsername" placeholder="Nome de usuário" required>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="registerEmail" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="registerPassword" placeholder="Senha (mín. 6 caracteres)" required>
+                </div>
+                <button type="submit" class="btn-primary">Cadastrar</button>
             </form>
-            <p>Já tem uma conta? <a href="#" id="showLoginLink">Faça login!</a></p>
+            <p class="switch-form">Já tem uma conta? <a href="#" id="showLoginLink">Faça login!</a></p>
         </div>
 
         <div class="main-content hidden" id="mainContent">
-            <header>
-                <h1>Bem-vindo, <span id="usernameDisplay"></span>!</h1>
-                <div class="user-info">
-                    <span>Moedas: <span id="coinsDisplay">0</span></span>
-                    <button id="logoutBtn">Sair</button>
+            <header class="main-header">
+                <div class="header-left">
+                    <h1>👋 Olá, <span id="usernameDisplay"></span>!</h1>
+                </div>
+                <div class="header-right">
+                    <div class="coins-display">
+                        <span class="coin-icon">💰</span>
+                        <span id="coinsDisplay">0</span>
+                    </div>
+                    <button id="logoutBtn" class="btn-logout">Sair</button>
                 </div>
             </header>
 
             <div class="dashboard">
-                <div class="section">
-                    <h3>Código Promocional</h3>
-                    <input type="text" id="promoCode" placeholder="Digite o código">
-                    <button id="redeemBtn">Resgatar</button>
-                </div>
-
-                <div class="section">
-                    <h3>Chat Global</h3>
-                    <div id="chatMessages" class="chat-messages"></div>
-                    <div class="chat-input">
-                        <input type="text" id="messageInput" placeholder="Digite sua mensagem...">
-                        <button id="sendMessageBtn">Enviar</button>
+                <div class="card promo-card">
+                    <h3>🎁 Código Promocional</h3>
+                    <div class="promo-input-group">
+                        <input type="text" id="promoCode" placeholder="Digite o código">
+                        <button id="redeemBtn" class="btn-secondary">Resgatar</button>
                     </div>
                 </div>
 
-                <div class="admin-panel hidden" id="adminPanel">
-                    <h3>Painel Administrativo</h3>
-                    <button id="openAdminBtn">Abrir Painel Admin</button>
+                <div class="card chat-card">
+                    <h3>💬 Chat Global</h3>
+                    <div id="chatMessages" class="chat-messages"></div>
+                    <div class="chat-input-group">
+                        <input type="text" id="messageInput" placeholder="Digite sua mensagem...">
+                        <button id="sendMessageBtn" class="btn-send">Enviar</button>
+                    </div>
+                </div>
+
+                <div class="card admin-card hidden" id="adminPanel">
+                    <h3>⚙️ Painel Administrativo</h3>
+                    <p>Você tem acesso ao painel de administração</p>
+                    <button id="openAdminBtn" class="btn-admin">Abrir Painel Admin</button>
                 </div>
             </div>
         </div>
 
         <div class="banned-screen hidden" id="bannedScreen">
+            <div class="banned-icon">🚫</div>
             <h2>Você foi banido!</h2>
             <p id="banReason"></p>
             <p id="banExpires"></p>

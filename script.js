@@ -7,31 +7,42 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupEventListeners() {
-    document.getElementById('loginFormElement').addEventListener('submit', handleLogin);
-    document.getElementById('registerFormElement').addEventListener('submit', handleRegister);
-    document.getElementById('messageInput').addEventListener('keypress', function(e) {
+    const loginForm = document.getElementById('loginFormElement');
+    const registerForm = document.getElementById('registerFormElement');
+    const showRegisterLink = document.getElementById('showRegisterLink');
+    const showLoginLink = document.getElementById('showLoginLink');
+    const messageInput = document.getElementById('messageInput');
+    
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
+    if (registerForm) registerForm.addEventListener('submit', handleRegister);
+    if (showRegisterLink) showRegisterLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        showRegister();
+    });
+    if (showLoginLink) showLoginLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        showLogin();
+    });
+    if (messageInput) messageInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             sendMessage();
         }
     });
     
-    // Adicionar event listeners para links e botões
-    document.getElementById('showRegisterLink').addEventListener('click', function(e) {
-        e.preventDefault();
-        showRegister();
-    });
-    
-    document.getElementById('showLoginLink').addEventListener('click', function(e) {
-        e.preventDefault();
-        showLogin();
-    });
-    
-    document.getElementById('logoutBtn').addEventListener('click', logout);
-    document.getElementById('redeemBtn').addEventListener('click', redeemCode);
-    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
-    document.getElementById('openAdminBtn').addEventListener('click', function() {
-        window.location.href = '/admin';
-    });
+    // Botões que aparecem depois do login
+    setTimeout(() => {
+        const logoutBtn = document.getElementById('logoutBtn');
+        const redeemBtn = document.getElementById('redeemBtn');
+        const sendMessageBtn = document.getElementById('sendMessageBtn');
+        const openAdminBtn = document.getElementById('openAdminBtn');
+        
+        if (logoutBtn) logoutBtn.addEventListener('click', logout);
+        if (redeemBtn) redeemBtn.addEventListener('click', redeemCode);
+        if (sendMessageBtn) sendMessageBtn.addEventListener('click', sendMessage);
+        if (openAdminBtn) openAdminBtn.addEventListener('click', function() {
+            window.location.href = '/admin';
+        });
+    }, 100);
 }
 
 async function handleLogin(e) {
@@ -55,6 +66,7 @@ async function handleLogin(e) {
             currentUser = data.user;
             showMainContent();
             initializeSocket();
+            setupEventListeners(); // Re-setup para botões novos
         } else if (data.error === 'Conta banida') {
             showBannedScreen(data.banReason, data.banExpires);
         } else {
@@ -87,6 +99,7 @@ async function handleRegister(e) {
             currentUser = data.user;
             showMainContent();
             initializeSocket();
+            setupEventListeners(); // Re-setup para botões novos
         } else {
             showAlert(data.error || 'Erro no cadastro', 'error');
         }
@@ -116,6 +129,7 @@ async function checkAuthStatus() {
             currentUser = user;
             showMainContent();
             initializeSocket();
+            setupEventListeners(); // Re-setup para botões novos
         }
     } catch (error) {
         console.log('Usuário não autenticado');
@@ -163,7 +177,7 @@ function showBannedScreen(reason, expires) {
 function initializeSocket() {
     socket = io();
     
-    socket.emit('join-chat', currentUser._id || currentUser.id);
+    socket.emit('join-chat', currentUser.id || currentUser._id);
     
     socket.on('new-message', function(data) {
         addMessageToChat(data);
@@ -188,7 +202,7 @@ function addMessageToChat(data) {
     const timestamp = new Date(data.timestamp).toLocaleTimeString();
     
     messageDiv.innerHTML = `
-        <span class="username">${data.username}:</span>
+        <span class="username">${data.username}</span>
         <span class="timestamp">${timestamp}</span>
         <div>${data.message}</div>
     `;
@@ -251,21 +265,6 @@ function showAlert(message, type) {
     }
 }
 
-// Proteção contra modificação do JavaScript
-try {
-    Object.freeze(window);
-    Object.freeze(document);
-} catch(e) {
-    // Ignorar erros de freeze
-}
-
-// Detectar tentativas de modificação
-const originalConsoleLog = console.log;
-console.log = function() {
-    // Bloquear logs suspeitos
-    return;
-};
-
 // Bloquear DevTools
 document.addEventListener('keydown', function(e) {
     if (e.key === 'F12' || 
@@ -276,17 +275,3 @@ document.addEventListener('keydown', function(e) {
         return false;
     }
 });
-
-// Detectar abertura do DevTools
-let devtools = {open: false, orientation: null};
-setInterval(function() {
-    if (window.outerHeight - window.innerHeight > 200 || 
-        window.outerWidth - window.innerWidth > 200) {
-        if (!devtools.open) {
-            devtools.open = true;
-            window.location.reload();
-        }
-    } else {
-        devtools.open = false;
-    }
-}, 500);
