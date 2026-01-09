@@ -271,6 +271,30 @@ body {
     grid-column: span 2;
 }
 
+.friends-card, .video-card, .private-chat-card {
+    background: white;
+}
+
+.friends-list {
+    min-height: 150px;
+    padding: 15px;
+    background: #fafafa;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.empty-state {
+    text-align: center;
+    color: #95a5a6;
+    padding: 40px 20px;
+}
+
+.feature-desc {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
 .chat-messages {
     height: 350px;
     overflow-y: auto;

@@ -35,6 +35,9 @@ function setupEventListeners() {
         const redeemBtn = document.getElementById('redeemBtn');
         const sendMessageBtn = document.getElementById('sendMessageBtn');
         const openAdminBtn = document.getElementById('openAdminBtn');
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        const startVideoBtn = document.getElementById('startVideoBtn');
+        const openPrivateChatBtn = document.getElementById('openPrivateChatBtn');
         
         if (logoutBtn) logoutBtn.addEventListener('click', logout);
         if (redeemBtn) redeemBtn.addEventListener('click', redeemCode);
@@ -42,6 +45,9 @@ function setupEventListeners() {
         if (openAdminBtn) openAdminBtn.addEventListener('click', function() {
             window.location.href = '/admin';
         });
+        if (addFriendBtn) addFriendBtn.addEventListener('click', addFriend);
+        if (startVideoBtn) startVideoBtn.addEventListener('click', startVideoCall);
+        if (openPrivateChatBtn) openPrivateChatBtn.addEventListener('click', openPrivateChat);
     }, 100);
 }
 
@@ -275,3 +281,21 @@ document.addEventListener('keydown', function(e) {
         return false;
     }
 });
+
+// Funções de Amigos
+function addFriend() {
+    const friendUsername = prompt('👥 Digite o nome do usuário para adicionar como amigo:');
+    if (friendUsername) {
+        showAlert('✨ Funcionalidade em desenvolvimento! Em breve você poderá adicionar ' + friendUsername + ' como amigo.', 'success');
+    }
+}
+
+// Funções de Ligação de Vídeo
+function startVideoCall() {
+    showAlert('📹 Funcionalidade de ligação de vídeo em desenvolvimento! Em breve disponível.', 'success');
+}
+
+// Funções de Chat Privado
+function openPrivateChat() {
+    showAlert('💬 Funcionalidade de chat privado em desenvolvimento! Em breve disponível.', 'success');
+}

@@ -10,24 +10,37 @@ function setupEventListeners() {
     document.getElementById('promoteForm').addEventListener('submit', handlePromote);
     document.getElementById('promoForm').addEventListener('submit', handleCreatePromo);
     
-    // Navigation buttons
     document.querySelectorAll('.nav-btn[data-section]').forEach(btn => {
         btn.addEventListener('click', function() {
             showSection(this.dataset.section);
         });
     });
     
-    document.getElementById('backToSiteBtn').addEventListener('click', function() {
-        window.location.href = '/';
-    });
+    const backBtn = document.getElementById('backToSiteBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', function() {
+            window.location.href = '/';
+        });
+    }
     
-    document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
+    const refreshBtn = document.getElementById('refreshUsersBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadUsers);
+    }
     
-    // Modal close buttons
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', function() {
             const modal = this.closest('.modal');
             modal.style.display = 'none';
+        });
+    });
+    
+    document.querySelectorAll('.setting-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const action = this.dataset.action;
+            if (action === 'badwords') manageBadWords();
+            if (action === 'coins') manageCoinSettings();
+            if (action === 'backup') createBackup();
         });
     });
 }
@@ -51,20 +64,15 @@ async function checkAdminAuth() {
 }
 
 function showSection(sectionName) {
-    // Esconder todas as seções
     document.querySelectorAll('.admin-section').forEach(section => {
         section.classList.add('hidden');
     });
     
-    // Remover classe active de todos os botões
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
-    // Mostrar seção selecionada
     document.getElementById(`${sectionName}-section`).classList.remove('hidden');
-    
-    // Adicionar classe active ao botão clicado
     document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
 }
 
@@ -94,15 +102,34 @@ async function loadUsers() {
                 <td>${new Date(user.createdAt).toLocaleDateString()}</td>
                 <td>
                     ${!user.isBanned ? 
-                        `<button class="action-btn ban-btn" onclick="openBanModal('${user._id}')">Banir</button>` :
-                        `<button class="action-btn unban-btn" onclick="unbanUser('${user._id}')">Desbanir</button>`
+                        `<button class="action-btn ban-btn" data-userid="${user.id}">Banir</button>` :
+                        `<button class="action-btn unban-btn" data-userid="${user.id}">Desbanir</button>`
                     }
-                    <button class="action-btn promote-btn" onclick="openPromoteModal('${user._id}', ${user.adminLevel})">Promover</button>
+                    <button class="action-btn promote-btn" data-userid="${user.id}" data-level="${user.adminLevel}">Promover</button>
                 </td>
             `;
             
             tbody.appendChild(row);
         });
+        
+        document.querySelectorAll('.ban-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                openBanModal(this.dataset.userid);
+            });
+        });
+        
+        document.querySelectorAll('.unban-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                unbanUser(this.dataset.userid);
+            });
+        });
+        
+        document.querySelectorAll('.promote-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                openPromoteModal(this.dataset.userid, this.dataset.level);
+            });
+        });
+        
     } catch (error) {
         showAlert('Erro ao carregar usuários', 'error');
     }
@@ -117,10 +144,6 @@ function openPromoteModal(userId, currentLevel) {
     document.getElementById('promoteUserId').value = userId;
     document.getElementById('adminLevel').value = currentLevel;
     document.getElementById('promoteModal').style.display = 'block';
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
 }
 
 async function handleBan(e) {
@@ -141,7 +164,7 @@ async function handleBan(e) {
         
         if (response.ok) {
             showAlert('Usuário banido com sucesso', 'success');
-            closeModal('banModal');
+            document.getElementById('banModal').style.display = 'none';
             loadUsers();
             document.getElementById('banForm').reset();
         } else {
@@ -194,7 +217,7 @@ async function handlePromote(e) {
         
         if (response.ok) {
             showAlert('Usuário promovido com sucesso', 'success');
-            closeModal('promoteModal');
+            document.getElementById('promoteModal').style.display = 'none';
             loadUsers();
         } else {
             showAlert('Erro ao promover usuário', 'error');
@@ -305,12 +328,11 @@ function showAlert(message, type) {
     }, 5000);
 }
 
-// Fechar modais clicando fora
-window.onclick = function(event) {
+window.addEventListener('click', function(event) {
     const modals = document.querySelectorAll('.modal');
     modals.forEach(modal => {
         if (event.target === modal) {
             modal.style.display = 'none';
         }
     });
-}
+});
