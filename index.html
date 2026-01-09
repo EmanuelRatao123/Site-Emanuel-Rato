@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Emanuel - Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-container" id="loginForm">
+            <h2>Login</h2>
+            <form id="loginFormElement">
+                <input type="text" id="loginUsername" placeholder="Usuário ou Email" required>
+                <input type="password" id="loginPassword" placeholder="Senha" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <p>Não tem uma conta? <a href="#" onclick="showRegister()">Cadastre-se!</a></p>
+        </div>
+
+        <div class="auth-container hidden" id="registerForm">
+            <h2>Cadastro</h2>
+            <form id="registerFormElement">
+                <input type="text" id="registerUsername" placeholder="Nome de usuário" required>
+                <input type="email" id="registerEmail" placeholder="Email" required>
+                <input type="password" id="registerPassword" placeholder="Senha (mín. 6 caracteres)" required>
+                <button type="submit">Cadastrar</button>
+            </form>
+            <p>Já tem uma conta? <a href="#" onclick="showLogin()">Faça login!</a></p>
+        </div>
+
+        <div class="main-content hidden" id="mainContent">
+            <header>
+                <h1>Bem-vindo, <span id="usernameDisplay"></span>!</h1>
+                <div class="user-info">
+                    <span>Moedas: <span id="coinsDisplay">0</span></span>
+                    <button onclick="logout()">Sair</button>
+                </div>
+            </header>
+
+            <div class="dashboard">
+                <div class="section">
+                    <h3>Código Promocional</h3>
+                    <input type="text" id="promoCode" placeholder="Digite o código">
+                    <button onclick="redeemCode()">Resgatar</button>
+                </div>
+
+                <div class="section">
+                    <h3>Chat Global</h3>
+                    <div id="chatMessages" class="chat-messages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="messageInput" placeholder="Digite sua mensagem...">
+                        <button onclick="sendMessage()">Enviar</button>
+                    </div>
+                </div>
+
+                <div class="admin-panel hidden" id="adminPanel">
+                    <h3>Painel Administrativo</h3>
+                    <button onclick="window.location.href='/admin'">Abrir Painel Admin</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="banned-screen hidden" id="bannedScreen">
+            <h2>Você foi banido!</h2>
+            <p id="banReason"></p>
+            <p id="banExpires"></p>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

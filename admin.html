@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo - Site Emanuel</title>
+    <link rel="stylesheet" href="admin-style.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>Painel Administrativo</h1>
+            <div class="admin-nav">
+                <button onclick="showSection('users')" class="nav-btn active">Usuários</button>
+                <button onclick="showSection('promo')" class="nav-btn">Códigos Promocionais</button>
+                <button onclick="showSection('settings')" class="nav-btn">Configurações</button>
+                <button onclick="window.location.href='/'" class="nav-btn">Voltar ao Site</button>
+            </div>
+        </header>
+
+        <main class="admin-main">
+            <!-- Seção de Usuários -->
+            <section id="users-section" class="admin-section">
+                <div class="section-header">
+                    <h2>Gerenciar Usuários</h2>
+                    <button onclick="loadUsers()" class="refresh-btn">Atualizar</button>
+                </div>
+                
+                <div class="users-table-container">
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Usuário</th>
+                                <th>Email</th>
+                                <th>Moedas</th>
+                                <th>Admin</th>
+                                <th>Status</th>
+                                <th>Cadastro</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Seção de Códigos Promocionais -->
+            <section id="promo-section" class="admin-section hidden">
+                <div class="section-header">
+                    <h2>Códigos Promocionais</h2>
+                </div>
+                
+                <div class="promo-form">
+                    <h3>Criar Novo Código</h3>
+                    <form id="promoForm">
+                        <input type="text" id="promoCodeInput" placeholder="Código (ex: WELCOME100)" required>
+                        <input type="number" id="promoReward" placeholder="Recompensa em moedas" required>
+                        <input type="number" id="promoMaxUses" placeholder="Máximo de usos (-1 = ilimitado)" value="-1">
+                        <button type="submit">Criar Código</button>
+                    </form>
+                </div>
+
+                <div class="promo-list">
+                    <h3>Códigos Existentes</h3>
+                    <div id="promoCodesContainer"></div>
+                </div>
+            </section>
+
+            <!-- Seção de Configurações -->
+            <section id="settings-section" class="admin-section hidden">
+                <div class="section-header">
+                    <h2>Configurações do Sistema</h2>
+                </div>
+                
+                <div class="settings-grid">
+                    <div class="setting-card">
+                        <h3>Filtro de Palavrões</h3>
+                        <p>Gerenciar palavras bloqueadas no chat</p>
+                        <button onclick="manageBadWords()">Configurar</button>
+                    </div>
+                    
+                    <div class="setting-card">
+                        <h3>Configurações de Moedas</h3>
+                        <p>Definir valores padrão e limites</p>
+                        <button onclick="manageCoinSettings()">Configurar</button>
+                    </div>
+                    
+                    <div class="setting-card">
+                        <h3>Backup do Sistema</h3>
+                        <p>Fazer backup dos dados</p>
+                        <button onclick="createBackup()">Criar Backup</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal de Ban -->
+    <div id="banModal" class="modal">
+        <div class="modal-content">
+            <h3>Banir Usuário</h3>
+            <form id="banForm">
+                <input type="hidden" id="banUserId">
+                <textarea id="banReason" placeholder="Motivo do banimento" required></textarea>
+                <input type="number" id="banDuration" placeholder="Duração em horas" required>
+                <div class="modal-actions">
+                    <button type="submit">Banir</button>
+                    <button type="button" onclick="closeModal('banModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Promoção -->
+    <div id="promoteModal" class="modal">
+        <div class="modal-content">
+            <h3>Promover Usuário</h3>
+            <form id="promoteForm">
+                <input type="hidden" id="promoteUserId">
+                <select id="adminLevel" required>
+                    <option value="0">Usuário Normal</option>
+                    <option value="1">Moderador</option>
+                    <option value="5">Admin</option>
+                    <option value="10">Super Admin</option>
+                </select>
+                <div class="modal-actions">
+                    <button type="submit">Promover</button>
+                    <button type="button" onclick="closeModal('promoteModal')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin-script.js"></script>
+</body>
+</html>
