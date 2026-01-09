@@ -11,10 +11,10 @@
         <header class="admin-header">
             <h1>Painel Administrativo</h1>
             <div class="admin-nav">
-                <button onclick="showSection('users')" class="nav-btn active">Usuários</button>
-                <button onclick="showSection('promo')" class="nav-btn">Códigos Promocionais</button>
-                <button onclick="showSection('settings')" class="nav-btn">Configurações</button>
-                <button onclick="window.location.href='/'" class="nav-btn">Voltar ao Site</button>
+                <button class="nav-btn active" data-section="users">Usuários</button>
+                <button class="nav-btn" data-section="promo">Códigos Promocionais</button>
+                <button class="nav-btn" data-section="settings">Configurações</button>
+                <button class="nav-btn" id="backToSiteBtn">Voltar ao Site</button>
             </div>
         </header>
 
@@ -23,7 +23,7 @@
             <section id="users-section" class="admin-section">
                 <div class="section-header">
                     <h2>Gerenciar Usuários</h2>
-                    <button onclick="loadUsers()" class="refresh-btn">Atualizar</button>
+                    <button class="refresh-btn" id="refreshUsersBtn">Atualizar</button>
                 </div>
                 
                 <div class="users-table-container">
@@ -106,7 +106,7 @@
                 <input type="number" id="banDuration" placeholder="Duração em horas" required>
                 <div class="modal-actions">
                     <button type="submit">Banir</button>
-                    <button type="button" onclick="closeModal('banModal')">Cancelar</button>
+                    <button type="button" class="modal-close">Cancelar</button>
                 </div>
             </form>
         </div>
@@ -126,7 +126,7 @@
                 </select>
                 <div class="modal-actions">
                     <button type="submit">Promover</button>
-                    <button type="button" onclick="closeModal('promoteModal')">Cancelar</button>
+                    <button type="button" class="modal-close">Cancelar</button>
                 </div>
             </form>
         </div>

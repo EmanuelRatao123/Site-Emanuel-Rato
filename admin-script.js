@@ -9,6 +9,27 @@ function setupEventListeners() {
     document.getElementById('banForm').addEventListener('submit', handleBan);
     document.getElementById('promoteForm').addEventListener('submit', handlePromote);
     document.getElementById('promoForm').addEventListener('submit', handleCreatePromo);
+    
+    // Navigation buttons
+    document.querySelectorAll('.nav-btn[data-section]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            showSection(this.dataset.section);
+        });
+    });
+    
+    document.getElementById('backToSiteBtn').addEventListener('click', function() {
+        window.location.href = '/';
+    });
+    
+    document.getElementById('refreshUsersBtn').addEventListener('click', loadUsers);
+    
+    // Modal close buttons
+    document.querySelectorAll('.modal-close').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            modal.style.display = 'none';
+        });
+    });
 }
 
 async function checkAdminAuth() {
@@ -44,7 +65,7 @@ function showSection(sectionName) {
     document.getElementById(`${sectionName}-section`).classList.remove('hidden');
     
     // Adicionar classe active ao botão clicado
-    event.target.classList.add('active');
+    document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
 }
 
 async function loadUsers() {

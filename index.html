@@ -15,7 +15,7 @@
                 <input type="password" id="loginPassword" placeholder="Senha" required>
                 <button type="submit">Entrar</button>
             </form>
-            <p>Não tem uma conta? <a href="#" onclick="showRegister()">Cadastre-se!</a></p>
+            <p>Não tem uma conta? <a href="#" id="showRegisterLink">Cadastre-se!</a></p>
         </div>
 
         <div class="auth-container hidden" id="registerForm">
@@ -26,7 +26,7 @@
                 <input type="password" id="registerPassword" placeholder="Senha (mín. 6 caracteres)" required>
                 <button type="submit">Cadastrar</button>
             </form>
-            <p>Já tem uma conta? <a href="#" onclick="showLogin()">Faça login!</a></p>
+            <p>Já tem uma conta? <a href="#" id="showLoginLink">Faça login!</a></p>
         </div>
 
         <div class="main-content hidden" id="mainContent">
@@ -34,7 +34,7 @@
                 <h1>Bem-vindo, <span id="usernameDisplay"></span>!</h1>
                 <div class="user-info">
                     <span>Moedas: <span id="coinsDisplay">0</span></span>
-                    <button onclick="logout()">Sair</button>
+                    <button id="logoutBtn">Sair</button>
                 </div>
             </header>
 
@@ -42,7 +42,7 @@
                 <div class="section">
                     <h3>Código Promocional</h3>
                     <input type="text" id="promoCode" placeholder="Digite o código">
-                    <button onclick="redeemCode()">Resgatar</button>
+                    <button id="redeemBtn">Resgatar</button>
                 </div>
 
                 <div class="section">
@@ -50,13 +50,13 @@
                     <div id="chatMessages" class="chat-messages"></div>
                     <div class="chat-input">
                         <input type="text" id="messageInput" placeholder="Digite sua mensagem...">
-                        <button onclick="sendMessage()">Enviar</button>
+                        <button id="sendMessageBtn">Enviar</button>
                     </div>
                 </div>
 
                 <div class="admin-panel hidden" id="adminPanel">
                     <h3>Painel Administrativo</h3>
-                    <button onclick="window.location.href='/admin'">Abrir Painel Admin</button>
+                    <button id="openAdminBtn">Abrir Painel Admin</button>
                 </div>
             </div>
         </div>

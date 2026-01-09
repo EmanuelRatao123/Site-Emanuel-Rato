@@ -14,6 +14,24 @@ function setupEventListeners() {
             sendMessage();
         }
     });
+    
+    // Adicionar event listeners para links e botões
+    document.getElementById('showRegisterLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        showRegister();
+    });
+    
+    document.getElementById('showLoginLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        showLogin();
+    });
+    
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('redeemBtn').addEventListener('click', redeemCode);
+    document.getElementById('sendMessageBtn').addEventListener('click', sendMessage);
+    document.getElementById('openAdminBtn').addEventListener('click', function() {
+        window.location.href = '/admin';
+    });
 }
 
 async function handleLogin(e) {
@@ -234,8 +252,12 @@ function showAlert(message, type) {
 }
 
 // Proteção contra modificação do JavaScript
-Object.freeze(window);
-Object.freeze(document);
+try {
+    Object.freeze(window);
+    Object.freeze(document);
+} catch(e) {
+    // Ignorar erros de freeze
+}
 
 // Detectar tentativas de modificação
 const originalConsoleLog = console.log;
