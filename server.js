@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
-const mongoose = require('mongoose');
+const sqlite3 = require('sqlite3').verbose();
 const { Server } = require('socket.io');
 const http = require('http');
 const rateLimit = require('express-rate-limit');
@@ -14,6 +14,58 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+// Configurar SQLite
+const db = new sqlite3.Database('database.db');
+
+// Criar tabelas
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    email TEXT UNIQUE,
+    password TEXT,
+    coins INTEGER DEFAULT 0,
+    isAdmin INTEGER DEFAULT 0,
+    adminLevel INTEGER DEFAULT 0,
+    isBanned INTEGER DEFAULT 0,
+    banReason TEXT,
+    banExpires TEXT,
+    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS promo_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE,
+    reward INTEGER,
+    uses INTEGER DEFAULT 0,
+    maxUses INTEGER DEFAULT -1,
+    createdBy INTEGER,
+    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT,
+    message TEXT,
+    timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+    isGlobal INTEGER DEFAULT 1
+  )`);
+
+  // Criar admin padrão
+  const adminUsername = process.env.ADMIN_USERNAME || 'Emanuel';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'AdmLegal123';
+  
+  db.get('SELECT * FROM users WHERE username = ?', [adminUsername], (err, row) => {
+    if (!row) {
+      bcrypt.hash(adminPassword, 12, (err, hash) => {
+        db.run(`INSERT INTO users (username, email, password, coins, isAdmin, adminLevel) 
+                VALUES (?, ?, ?, ?, ?, ?)`, 
+                [adminUsername, 'admin@site.com', hash, 10000, 1, 10]);
+      });
+    }
+  });
+});
 
 // Configurações de segurança
 app.use(helmet({
@@ -52,47 +104,6 @@ app.use(session({
   }
 }));
 
-// Conectar ao MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/siteemanuel')
-  .then(() => console.log('Conectado ao MongoDB'))
-  .catch(err => console.error('Erro ao conectar ao MongoDB:', err));
-
-// Schemas
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  coins: { type: Number, default: 0 },
-  isAdmin: { type: Boolean, default: false },
-  adminLevel: { type: Number, default: 0 },
-  isBanned: { type: Boolean, default: false },
-  banReason: String,
-  banExpires: Date,
-  bannedIPs: [String],
-  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  createdAt: { type: Date, default: Date.now }
-});
-
-const promoCodeSchema = new mongoose.Schema({
-  code: { type: String, required: true, unique: true },
-  reward: { type: Number, required: true },
-  uses: { type: Number, default: 0 },
-  maxUses: { type: Number, default: -1 },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  createdAt: { type: Date, default: Date.now }
-});
-
-const chatSchema = new mongoose.Schema({
-  username: String,
-  message: String,
-  timestamp: { type: Date, default: Date.now },
-  isGlobal: { type: Boolean, default: true }
-});
-
-const User = mongoose.model('User', userSchema);
-const PromoCode = mongoose.model('PromoCode', promoCodeSchema);
-const Chat = mongoose.model('Chat', chatSchema);
-
 // Middleware de autenticação
 const requireAuth = (req, res, next) => {
   if (!req.session.userId) {
@@ -101,18 +112,18 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-const requireAdmin = async (req, res, next) => {
+const requireAdmin = (req, res, next) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Não autorizado' });
   }
   
-  const user = await User.findById(req.session.userId);
-  if (!user || !user.isAdmin) {
-    return res.status(403).json({ error: 'Acesso negado' });
-  }
-  
-  req.user = user;
-  next();
+  db.get('SELECT * FROM users WHERE id = ?', [req.session.userId], (err, user) => {
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+    req.user = user;
+    next();
+  });
 };
 
 // Filtro de palavrões
@@ -131,81 +142,71 @@ app.post('/api/register', [
   body('username').isLength({ min: 3 }).trim().escape(),
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 })
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+], (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-    const { username, email, password } = req.body;
-    
-    const existingUser = await User.findOne({ 
-      $or: [{ username }, { email }] 
-    });
-    
-    if (existingUser) {
+  const { username, email, password } = req.body;
+  
+  db.get('SELECT * FROM users WHERE username = ? OR email = ?', [username, email], (err, user) => {
+    if (user) {
       return res.status(400).json({ error: 'Usuário ou email já existe' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-    
-    const isFirstUser = await User.countDocuments() === 0;
-    const isAdminUser = username === process.env.ADMIN_USERNAME;
-    
-    const user = new User({
-      username,
-      email,
-      password: hashedPassword,
-      isAdmin: isFirstUser || isAdminUser,
-      adminLevel: isFirstUser || isAdminUser ? 10 : 0,
-      coins: isFirstUser || isAdminUser ? 10000 : 100
+    bcrypt.hash(password, 12, (err, hash) => {
+      db.run(`INSERT INTO users (username, email, password, coins) VALUES (?, ?, ?, ?)`,
+        [username, email, hash, 100], function(err) {
+          if (err) {
+            return res.status(500).json({ error: 'Erro ao criar usuário' });
+          }
+          
+          req.session.userId = this.lastID;
+          res.json({ 
+            success: true, 
+            user: { username, isAdmin: false, coins: 100 } 
+          });
+        });
     });
-
-    await user.save();
-    
-    req.session.userId = user._id;
-    res.json({ success: true, user: { username: user.username, isAdmin: user.isAdmin } });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
+  });
 });
 
 app.post('/api/login', [
   body('username').trim().escape(),
   body('password').exists()
-], async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    
-    const user = await User.findOne({ 
-      $or: [{ username }, { email: username }] 
-    });
-    
-    if (!user || !await bcrypt.compare(password, user.password)) {
+], (req, res) => {
+  const { username, password } = req.body;
+  
+  db.get('SELECT * FROM users WHERE username = ? OR email = ?', [username, username], (err, user) => {
+    if (!user) {
       return res.status(400).json({ error: 'Credenciais inválidas' });
     }
 
-    if (user.isBanned && user.banExpires > new Date()) {
-      return res.status(403).json({ 
-        error: 'Conta banida',
-        banReason: user.banReason,
-        banExpires: user.banExpires
-      });
-    }
+    bcrypt.compare(password, user.password, (err, match) => {
+      if (!match) {
+        return res.status(400).json({ error: 'Credenciais inválidas' });
+      }
 
-    req.session.userId = user._id;
-    res.json({ 
-      success: true, 
-      user: { 
-        username: user.username, 
-        isAdmin: user.isAdmin,
-        coins: user.coins
-      } 
+      if (user.isBanned && new Date(user.banExpires) > new Date()) {
+        return res.status(403).json({ 
+          error: 'Conta banida',
+          banReason: user.banReason,
+          banExpires: user.banExpires
+        });
+      }
+
+      req.session.userId = user.id;
+      res.json({ 
+        success: true, 
+        user: { 
+          username: user.username, 
+          isAdmin: user.isAdmin,
+          coins: user.coins
+        } 
+      });
     });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro interno do servidor' });
-  }
+  });
 });
 
 app.post('/api/logout', (req, res) => {
@@ -214,107 +215,99 @@ app.post('/api/logout', (req, res) => {
 });
 
 // Rotas do painel administrativo
-app.get('/api/admin/users', requireAdmin, async (req, res) => {
-  try {
-    const users = await User.find({}, '-password').sort({ createdAt: -1 });
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+  db.all('SELECT id, username, email, coins, isAdmin, adminLevel, isBanned, banReason, banExpires, createdAt FROM users ORDER BY createdAt DESC', (err, users) => {
+    if (err) {
+      return res.status(500).json({ error: 'Erro ao buscar usuários' });
+    }
     res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao buscar usuários' });
-  }
+  });
 });
 
-app.post('/api/admin/ban', requireAdmin, async (req, res) => {
-  try {
-    const { userId, reason, duration } = req.body;
-    
-    const banExpires = new Date();
-    banExpires.setHours(banExpires.getHours() + parseInt(duration));
-    
-    await User.findByIdAndUpdate(userId, {
-      isBanned: true,
-      banReason: reason,
-      banExpires: banExpires
+app.post('/api/admin/ban', requireAdmin, (req, res) => {
+  const { userId, reason, duration } = req.body;
+  
+  const banExpires = new Date();
+  banExpires.setHours(banExpires.getHours() + parseInt(duration));
+  
+  db.run('UPDATE users SET isBanned = 1, banReason = ?, banExpires = ? WHERE id = ?',
+    [reason, banExpires.toISOString(), userId], (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Erro ao banir usuário' });
+      }
+      res.json({ success: true });
     });
-    
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao banir usuário' });
-  }
 });
 
-app.post('/api/admin/unban', requireAdmin, async (req, res) => {
-  try {
-    const { userId } = req.body;
-    
-    await User.findByIdAndUpdate(userId, {
-      isBanned: false,
-      banReason: null,
-      banExpires: null
+app.post('/api/admin/unban', requireAdmin, (req, res) => {
+  const { userId } = req.body;
+  
+  db.run('UPDATE users SET isBanned = 0, banReason = NULL, banExpires = NULL WHERE id = ?',
+    [userId], (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Erro ao desbanir usuário' });
+      }
+      res.json({ success: true });
     });
-    
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao desbanir usuário' });
-  }
 });
 
-app.post('/api/admin/promote', requireAdmin, async (req, res) => {
-  try {
-    const { userId, adminLevel } = req.body;
-    
-    await User.findByIdAndUpdate(userId, {
-      isAdmin: adminLevel > 0,
-      adminLevel: parseInt(adminLevel)
+app.post('/api/admin/promote', requireAdmin, (req, res) => {
+  const { userId, adminLevel } = req.body;
+  
+  db.run('UPDATE users SET isAdmin = ?, adminLevel = ? WHERE id = ?',
+    [adminLevel > 0 ? 1 : 0, parseInt(adminLevel), userId], (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Erro ao promover usuário' });
+      }
+      res.json({ success: true });
     });
-    
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao promover usuário' });
-  }
 });
 
-app.post('/api/admin/promo-code', requireAdmin, async (req, res) => {
-  try {
-    const { code, reward, maxUses } = req.body;
-    
-    const promoCode = new PromoCode({
-      code: code.toUpperCase(),
-      reward: parseInt(reward),
-      maxUses: parseInt(maxUses),
-      createdBy: req.user._id
+app.post('/api/admin/promo-code', requireAdmin, (req, res) => {
+  const { code, reward, maxUses } = req.body;
+  
+  db.run('INSERT INTO promo_codes (code, reward, maxUses, createdBy) VALUES (?, ?, ?, ?)',
+    [code.toUpperCase(), parseInt(reward), parseInt(maxUses), req.user.id], (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Erro ao criar código promocional' });
+      }
+      res.json({ success: true });
     });
-    
-    await promoCode.save();
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao criar código promocional' });
-  }
 });
 
-app.get('/api/admin/promo-codes', requireAdmin, async (req, res) => {
-  try {
-    const promoCodes = await PromoCode.find().populate('createdBy', 'username');
-    res.json(promoCodes);
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao buscar códigos promocionais' });
-  }
+app.get('/api/admin/promo-codes', requireAdmin, (req, res) => {
+  db.all(`SELECT p.*, u.username as createdByUsername 
+          FROM promo_codes p 
+          LEFT JOIN users u ON p.createdBy = u.id 
+          ORDER BY p.createdAt DESC`, (err, promoCodes) => {
+    if (err) {
+      return res.status(500).json({ error: 'Erro ao buscar códigos promocionais' });
+    }
+    
+    const formatted = promoCodes.map(p => ({
+      ...p,
+      createdBy: { username: p.createdByUsername }
+    }));
+    
+    res.json(formatted);
+  });
 });
 
 // Rotas do usuário
-app.get('/api/user/profile', requireAuth, async (req, res) => {
-  try {
-    const user = await User.findById(req.session.userId, '-password');
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao buscar perfil' });
-  }
+app.get('/api/user/profile', requireAuth, (req, res) => {
+  db.get('SELECT id, username, email, coins, isAdmin, adminLevel FROM users WHERE id = ?', 
+    [req.session.userId], (err, user) => {
+      if (err || !user) {
+        return res.status(500).json({ error: 'Erro ao buscar perfil' });
+      }
+      res.json(user);
+    });
 });
 
-app.post('/api/user/redeem-code', requireAuth, async (req, res) => {
-  try {
-    const { code } = req.body;
-    
-    const promoCode = await PromoCode.findOne({ code: code.toUpperCase() });
+app.post('/api/user/redeem-code', requireAuth, (req, res) => {
+  const { code } = req.body;
+  
+  db.get('SELECT * FROM promo_codes WHERE code = ?', [code.toUpperCase()], (err, promoCode) => {
     if (!promoCode) {
       return res.status(400).json({ error: 'Código inválido' });
     }
@@ -323,53 +316,50 @@ app.post('/api/user/redeem-code', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Código esgotado' });
     }
     
-    await User.findByIdAndUpdate(req.session.userId, {
-      $inc: { coins: promoCode.reward }
-    });
-    
-    await PromoCode.findByIdAndUpdate(promoCode._id, {
-      $inc: { uses: 1 }
-    });
-    
-    res.json({ success: true, reward: promoCode.reward });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao resgatar código' });
-  }
+    db.run('UPDATE users SET coins = coins + ? WHERE id = ?', 
+      [promoCode.reward, req.session.userId], (err) => {
+        if (err) {
+          return res.status(500).json({ error: 'Erro ao resgatar código' });
+        }
+        
+        db.run('UPDATE promo_codes SET uses = uses + 1 WHERE id = ?', [promoCode.id]);
+        res.json({ success: true, reward: promoCode.reward });
+      });
+  });
 });
 
 // Socket.IO para chat em tempo real
 io.on('connection', (socket) => {
   console.log('Usuário conectado:', socket.id);
   
-  socket.on('join-chat', async (userId) => {
-    const user = await User.findById(userId);
-    if (user && !user.isBanned) {
-      socket.userId = userId;
-      socket.username = user.username;
-      socket.join('global-chat');
-    }
+  socket.on('join-chat', (userId) => {
+    db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+      if (user && !user.isBanned) {
+        socket.userId = userId;
+        socket.username = user.username;
+        socket.join('global-chat');
+      }
+    });
   });
   
-  socket.on('send-message', async (data) => {
+  socket.on('send-message', (data) => {
     if (!socket.userId) return;
     
-    const user = await User.findById(socket.userId);
-    if (!user || user.isBanned) return;
-    
-    const filteredMessage = filterBadWords(data.message);
-    
-    const chatMessage = new Chat({
-      username: user.username,
-      message: filteredMessage,
-      isGlobal: true
-    });
-    
-    await chatMessage.save();
-    
-    io.to('global-chat').emit('new-message', {
-      username: user.username,
-      message: filteredMessage,
-      timestamp: new Date()
+    db.get('SELECT * FROM users WHERE id = ?', [socket.userId], (err, user) => {
+      if (!user || user.isBanned) return;
+      
+      const filteredMessage = filterBadWords(data.message);
+      
+      db.run('INSERT INTO chat_messages (username, message) VALUES (?, ?)',
+        [user.username, filteredMessage], (err) => {
+          if (!err) {
+            io.to('global-chat').emit('new-message', {
+              username: user.username,
+              message: filteredMessage,
+              timestamp: new Date()
+            });
+          }
+        });
     });
   });
   
