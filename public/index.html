@@ -1,0 +1,108 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Emanuel</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #222; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #333; padding: 20px; border-radius: 10px; width: 400px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: none; }
+        button { cursor: pointer; background: #007bff; color: white; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .hidden { display: none; }
+        #chat-box { height: 300px; overflow-y: auto; background: #444; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .msg { margin-bottom: 5px; padding: 5px; background: #555; border-radius: 3px; }
+        .msg strong { color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container" id="auth-screen">
+        <h2>Login / Registro</h2>
+        <input type="text" id="username" placeholder="Usuário">
+        <input type="email" id="email" placeholder="Email (apenas registro)">
+        <input type="password" id="password" placeholder="Senha">
+        <button onclick="login()">Entrar</button>
+        <button onclick="register()" style="background: #28a745;">Criar Conta</button>
+        <p id="error-msg" style="color: red;"></p>
+    </div>
+
+    <div class="container hidden" id="app-screen">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Olá, <span id="user-name"></span> (🪙 <span id="user-coins">0</span>)</h3>
+            <button onclick="logout()" style="width: auto; background: #dc3545;">Sair</button>
+        </div>
+        <div id="admin-link" class="hidden"><a href="/admin" style="color: yellow;">Painel Admin</a></div>
+        <div id="chat-box"></div>
+        <input type="text" id="msg-input" placeholder="Digite sua mensagem...">
+        <button onclick="sendMessage()">Enviar</button>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentUser = null;
+
+        async function login() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            const data = await res.json();
+            if(data.success) enterApp(data.user);
+            else document.getElementById('error-msg').innerText = data.error;
+        }
+
+        async function register() {
+            const user = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user, email: email, password: pass })
+            });
+            const data = await res.json();
+            if(data.success) enterApp(data.user);
+            else document.getElementById('error-msg').innerText = data.error || 'Erro ao registrar';
+        }
+
+        function enterApp(user) {
+            currentUser = user;
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('user-name').innerText = user.username;
+            document.getElementById('user-coins').innerText = user.coins;
+            if(user.isAdmin) document.getElementById('admin-link').classList.remove('hidden');
+            
+            // Conectar ao chat
+            socket.emit('join-chat', user.id || 1); // ID temporário se não vier do login
+        }
+
+        async function logout() {
+            await fetch('/api/logout', { method: 'POST' });
+            location.reload();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('msg-input');
+            if(input.value.trim()) {
+                socket.emit('send-message', { message: input.value });
+                input.value = '';
+            }
+        }
+
+        socket.on('new-message', (data) => {
+            const box = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = 'msg';
+            div.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        });
+    </script>
+</body>
+</html>

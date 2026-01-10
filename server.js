@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
@@ -75,7 +75,17 @@ app.use(helmet({
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(__dirname));
+
+// Segurança: Bloquear acesso a arquivos sensíveis
+app.use((req, res, next) => {
+  const forbiddenFiles = ['.env', '.db', 'server.js', 'package.json', 'README.md'];
+  if (forbiddenFiles.some(file => req.url.includes(file))) {
+    return res.status(403).send('Acesso negado');
+  }
+  next();
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Rate limiting
 const limiter = rateLimit({
@@ -362,11 +372,11 @@ io.on('connection', (socket) => {
 
 // Servir arquivos estáticos
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
 const PORT = process.env.PORT || 3000;
